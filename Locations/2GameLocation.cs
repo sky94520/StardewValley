@@ -9837,14 +9837,18 @@ label_386:
       Dictionary<string, string> dictionary1 = Game1.content.Load<Dictionary<string, string>>("Data\\Locations");
       bool flag1 = false;
       bool flag2 = this.IsUsingMagicBait(who);
+      //获取当前的location
       string key = locationName == null ? (string) (NetFieldBase<string, NetString>) this.name : locationName;
       if (key == "BeachNightMarket")
         key = "Beach";
       if (this.name.Equals((object) "WitchSwamp") && !Game1.MasterPlayer.mailReceived.Contains("henchmanGone") && Game1.random.NextDouble() < 0.25 && !Game1.player.hasItemInInventory(308, 1))
         return new Object(308, 1);
+      //配置文件Data\\Location包含这个location，
       if (dictionary1.ContainsKey(key))
       {
+        //获取当前的季节所有的鱼，
         string[] strArray1 = dictionary1[key].Split('/')[4 + Utility.getSeasonNumber(Game1.currentSeason)].Split(' ');
+        //魔法鱼饵
         if (flag2)
         {
           List<string> stringList = new List<string>();
@@ -9855,25 +9859,36 @@ label_386:
           }
           strArray1 = stringList.ToArray();
         }
+        //<鱼：鱼对应的区域类型> 区域类型比如河流、池塘
         Dictionary<string, string> dictionary2 = new Dictionary<string, string>();
         if (strArray1.Length > 1)
         {
           for (int index = 0; index < strArray1.Length; index += 2)
             dictionary2[strArray1[index]] = strArray1[index + 1];
         }
+        //保存所有的鱼的key
         string[] array = dictionary2.Keys.ToArray<string>();
+        //加载所有的鱼的数据
         Dictionary<int, string> dictionary3 = Game1.content.Load<Dictionary<int, string>>("Data\\Fish");
+        //打乱所有的鱼id
         Utility.Shuffle<string>(Game1.random, array);
+        //进入第一个循环，它会找到一个符合当前环境、时间、天气，并且roll点成功的鱼的id并返回
         for (int index1 = 0; index1 < array.Length; ++index1)
         {
           bool flag3 = true;
+          //获取鱼的具体数据
           string[] strArray2 = dictionary3[Convert.ToInt32(array[index1])].Split('/');
+          //鱼所出现的时间要求，一天总共是24*60=1440分钟。
+          //格式为[)，可以有多个
           string[] strArray3 = strArray2[5].Split(' ');
+          //获取鱼所在的区域要求
           int int32 = Convert.ToInt32(dictionary2[array[index1]]);
+          //如果鱼对区域没有要求，或者玩家所处的区域等于鱼所在的区域
           if (int32 == -1 || this.getFishingLocation(who.getTileLocation()) == int32)
           {
             for (int index2 = 0; index2 < strArray3.Length; index2 += 2)
             {
+              //当前的时间在要求范围内，则flag3=false
               if (Game1.timeOfDay >= Convert.ToInt32(strArray3[index2]) && Game1.timeOfDay < Convert.ToInt32(strArray3[index2 + 1]))
               {
                 flag3 = false;
@@ -9881,6 +9896,7 @@ label_386:
               }
             }
           }
+          //鱼要求的天气, both是无所谓
           if (!strArray2[7].Equals("both"))
           {
             if (strArray2[7].Equals("rainy") && !Game1.IsRainingHere(this))
@@ -9888,29 +9904,48 @@ label_386:
             else if (strArray2[7].Equals("sunny") && Game1.IsRainingHere(this))
               flag3 = true;
           }
+          //如果使用了魔法鱼饵，则不判定时间和天气
           if (flag2)
             flag3 = false;
+          //难度要求。训练用鱼竿无法捕捉难度大于50的鱼
           bool flag4 = who != null && who.CurrentTool != null && who.CurrentTool is FishingRod && (int) (NetFieldBase<int, NetInt>) who.CurrentTool.upgradeLevel == 1;
           if (Convert.ToInt32(strArray2[1]) >= 50 & flag4)
             flag3 = true;
+          //玩家的等级不足以让这个鱼浮现出来
           if (who.FishingLevel < Convert.ToInt32(strArray2[12]))
             flag3 = true;
+          //这个鱼判定成功
           if (!flag3)
           {
+            //spawn multiplier
             double num1 = Convert.ToDouble(strArray2[10]);
+            //depth multiplier
             double num2 = Convert.ToDouble(strArray2[11]) * num1;
+            //钓到鱼的概率？spawn_multiplier - max(0, fish_max_depth - waterDepth) * depth_multiplier + fishing_level / 50;
+            //也就是说，当前水域越深，玩家钓鱼等级越高，越容易捕捉到鱼
+            //假设spawn multiplier=0.3, depth multiplier=0.5, fishing_level = 0,当前水深为1,鱼要求水深为4
+            //0.3 - (4-1) * 0.5 + 0 = 0.3 - 1.5 = -1.2
+            //如果水深为5, 0.3 - 0 = 0.3
+            //如果玩家等级满级 0.3 + 10/50 = 0.3 + 0.2 = 0.5
             double val1 = num1 - (double) Math.Max(0, Convert.ToInt32(strArray2[9]) - waterDepth) * num2 + (double) who.FishingLevel / 50.0;
+            //使用了非训练鱼竿，钓鱼概率 *= 1.1
             if (flag4)
               val1 *= 1.1;
             double num3 = Math.Min(val1, 0.899999976158142);
+            //钓鱼几率小鱼0.25，但是装备了Curiosity Lure（增加钓到稀有鱼的概率）
             if (num3 < 0.25 && who != null && who.CurrentTool != null && who.CurrentTool is FishingRod && (who.CurrentTool as FishingRod).getBobberAttachmentIndex() == 856)
             {
               float num4 = 0.25f;
               float num5 = 0.08f;
+              //0.25 - 0.08/0.25 * num3 + (0.25 - 0.08)/2 = 0.25 - 0.32 * num3 + 0.085=0.335 - 0.32 * num3
+              //由于num3小于0.25，假如为0.24999，那么num3的下限为=0.255
+              //如果为0.1，那么概率为0.3
               num3 = ((double) num4 - (double) num5) / (double) num4 * num3 + ((double) num4 - (double) num5) / 2.0;
             }
+            //判定是否钓鱼成功
             if (Game1.random.NextDouble() <= num3)
             {
+              //保存钓到的鱼的id
               parentSheetIndex = Convert.ToInt32(array[index1]);
               break;
             }
@@ -9918,11 +9953,14 @@ label_386:
         }
       }
       bool flag5 = false;
-      if (parentSheetIndex == -1)
+      // 各种垃圾 ref https://stardewids.com/
+      // if (parentSheetIndex == -1)
       {
+        //左闭右开
         parentSheetIndex = Game1.random.Next(167, 173);
         flag5 = true;
       }
+      //太阳鱼
       if ((who.fishCaught == null || who.fishCaught.Count() == 0) && parentSheetIndex >= 152)
         parentSheetIndex = 145;
       if (!Game1.isFestival() && Game1.random.NextDouble() <= 0.15 && Game1.player.team.SpecialOrderRuleActive("DROP_QI_BEANS"))

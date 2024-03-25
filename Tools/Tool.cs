@@ -392,9 +392,12 @@ namespace StardewValley
       this.lastUser = who;
       Game1.recentMultiplayerRandom = new Random((int) (short) Game1.random.Next((int) short.MinValue, 32768));
       ToolFactory.getIndexFromTool(this);
+      //重击，并且不是近战武器
       if (this.isHeavyHitter() && !(this is MeleeWeapon))
       {
+        //随机一点点的震动
         Rumble.rumble(0.1f + (float) (Game1.random.NextDouble() / 4.0), (float) (100 + Game1.random.Next(50)));
+        //以当前的位置，制作一个可以攻击敌人的碰撞盒
         location.damageMonster(new Rectangle(x - 32, y - 32, 64, 64), (int) (NetFieldBase<int, NetInt>) this.upgradeLevel + 1, ((int) (NetFieldBase<int, NetInt>) this.upgradeLevel + 1) * 3, false, who);
       }
       if (!(this is MeleeWeapon) || who.UsingTool && Game1.mouseClickPolling < 50 && (int) (NetFieldBase<int, NetInt>) (this as MeleeWeapon).type != 1 && (this as MeleeWeapon).InitialParentTileIndex != 47 && MeleeWeapon.timedHitTimer <= 0 && who.FarmerSprite.currentAnimationIndex == 5 && (double) who.FarmerSprite.timer < (double) who.FarmerSprite.interval / 4.0)

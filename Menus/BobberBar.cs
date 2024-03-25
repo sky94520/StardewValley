@@ -220,6 +220,7 @@ namespace StardewValley.Menus
         if ((double) this.everythingShakeTimer <= 0.0)
           this.everythingShake = Vector2.Zero;
       }
+      //淡入
       if (this.fadeIn)
       {
         this.scale += 0.05f;
@@ -229,6 +230,7 @@ namespace StardewValley.Menus
           this.fadeIn = false;
         }
       }
+      //淡出
       else if (this.fadeOut)
       {
         if ((double) this.everythingShakeTimer > 0.0 || this.sparkleText != null)
@@ -263,21 +265,31 @@ namespace StardewValley.Menus
           float num2 = Math.Min(99f, this.difficulty + (float) Game1.random.Next(10, 45)) / 100f;
           this.bobberTargetPosition = this.bobberPosition + (float) Game1.random.Next((int) Math.Min(-bobberPosition, num1), (int) num1) * num2;
         }
+        //漂浮型：这些鱼向上移动时的加速更快。
         if (this.motionType == 4)
           this.floaterSinkerAcceleration = Math.Max(this.floaterSinkerAcceleration - 0.01f, -1.5f);
+        //下坠型：这些鱼向下移动时的加速更快。
         else if (this.motionType == 3)
           this.floaterSinkerAcceleration = Math.Min(this.floaterSinkerAcceleration + 0.01f, 1.5f);
+        //浮标距离目的地大于3，并且目的地不是-1
         if ((double) Math.Abs(this.bobberPosition - this.bobberTargetPosition) > 3.0 && (double) this.bobberTargetPosition != -1.0)
         {
+          //更改加速度
           this.bobberAcceleration = (float) (((double) this.bobberTargetPosition - (double) this.bobberPosition) / ((double) Game1.random.Next(10, 30) + (100.0 - (double) Math.Min(100f, this.difficulty))));
+          //更新速度
           this.bobberSpeed += (float) (((double) this.bobberAcceleration - (double) this.bobberSpeed) / 5.0);
         }
+        //即将到达目的地，那就换一个目标位置
+        //平滑型：这些鱼的运动模式比较稳定。
         else
           this.bobberTargetPosition = this.motionType == 2 || Game1.random.NextDouble() >= (double) this.difficulty / 2000.0 ? -1f : this.bobberPosition + (Game1.random.NextDouble() < 0.5 ? (float) Game1.random.Next(-100, -51) : (float) Game1.random.Next(50, 101));
+        //混合型：这些鱼遵循最基本的运动模式。
         if (this.motionType == 1 && Game1.random.NextDouble() < (double) this.difficulty / 1000.0)
           this.bobberTargetPosition = this.bobberPosition + (Game1.random.NextDouble() < 0.5 ? (float) Game1.random.Next(-100 - (int) this.difficulty * 2, -51) : (float) Game1.random.Next(50, 101 + (int) this.difficulty * 2));
+        //确认浮标的目标位置
         this.bobberTargetPosition = Math.Max(-1f, Math.Min(this.bobberTargetPosition, 548f));
         this.bobberPosition += this.bobberSpeed + this.floaterSinkerAcceleration;
+        //确保浮标的位置在一定范围内
         if ((double) this.bobberPosition > 532.0)
           this.bobberPosition = 532f;
         else if ((double) this.bobberPosition < 0.0)
@@ -292,8 +304,10 @@ namespace StardewValley.Menus
         float num4 = this.buttonPressed ? -0.25f : 0.25f;
         if (this.buttonPressed && (double) num4 < 0.0 && ((double) this.bobberBarPos == 0.0 || (double) this.bobberBarPos == (double) (568 - this.bobberBarHeight)))
           this.bobberBarSpeed = 0.0f;
+        //浮标在bar中
         if (this.bobberInBar)
         {
+          //691 Barbed Hook 倒刺钩 上钩的鱼更不容易跑掉，使 "钓鱼条" 靠紧猎物。对速度慢、弱小的鱼最有效。
           num4 *= this.whichBobber == 691 ? 0.3f : 0.6f;
           if (this.whichBobber == 691)
           {
@@ -306,13 +320,17 @@ namespace StardewValley.Menus
         float bobberBarPos = this.bobberBarPos;
         this.bobberBarSpeed += num4;
         this.bobberBarPos += this.bobberBarSpeed;
+        //产生回弹效果
+        //到达底部，产生回弹效果
         if ((double) this.bobberBarPos + (double) this.bobberBarHeight > 568.0)
         {
           this.bobberBarPos = (float) (568 - this.bobberBarHeight);
+          //默认情况下，每次的速度都是原来的2/3
           this.bobberBarSpeed = (float) (-(double) this.bobberBarSpeed * 2.0 / 3.0 * (this.whichBobber == 692 ? 0.100000001490116 : 1.0));
           if ((double) bobberBarPos + (double) this.bobberBarHeight < 568.0)
             Game1.playSound("shiny4");
         }
+        //在顶部，同样会有回弹效果
         else if ((double) this.bobberBarPos < 0.0)
         {
           this.bobberBarPos = 0.0f;
@@ -362,6 +380,7 @@ namespace StardewValley.Menus
             }
           }
         }
+        //浮标在bar里面，累计
         if (this.bobberInBar)
         {
           this.distanceFromCatching += 1f / 500f;
@@ -377,6 +396,7 @@ namespace StardewValley.Menus
           if (BobberBar.reelSound != null && !BobberBar.reelSound.IsPlaying && !BobberBar.reelSound.IsStopping)
             BobberBar.reelSound.Play();
         }
+        //不在bar里面
         else if (!flag || this.treasureCaught || this.whichBobber != 693)
         {
           if (!this.fishShake.Equals(Vector2.Zero))
@@ -413,6 +433,7 @@ namespace StardewValley.Menus
         this.distanceFromCatching = Math.Max(0.0f, Math.Min(1f, this.distanceFromCatching));
         if (Game1.player.CurrentTool != null)
           Game1.player.CurrentTool.tickUpdate(time, Game1.player);
+        //如果捕获鱼的距离为0，表示鱼逃走了
         if ((double) this.distanceFromCatching <= 0.0)
         {
           this.fadeOut = true;
@@ -424,6 +445,7 @@ namespace StardewValley.Menus
           if (BobberBar.reelSound != null)
             BobberBar.reelSound.Stop(AudioStopOptions.Immediate);
         }
+        //捕捉到鱼咯
         else if ((double) this.distanceFromCatching >= 1.0)
         {
           this.everythingShakeTimer = 500f;

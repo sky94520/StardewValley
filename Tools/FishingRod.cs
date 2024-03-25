@@ -316,6 +316,7 @@ namespace StardewValley.Tools
       if (this.fishCaught || !who.IsLocalPlayer && (this.isReeling || this.isFishing || this.pullingOutOfWater))
         return;
       this.hasDoneFucntionYet = true;
+      //浮标所在的tile坐标
       Vector2 bobberTile = this.calculateBobberTile();
       int x1 = (int) bobberTile.X;
       int y1 = (int) bobberTile.Y;
@@ -324,27 +325,38 @@ namespace StardewValley.Tools
         who.canReleaseTool = true;
       if (Game1.isAnyGamePadButtonBeingPressed())
         Game1.lastCursorMotionWasMouse = false;
+      //当前没有在钓鱼，并且浮标没有在空中，并且不是处于收回钓竿的动作；并且没有在咬钩；并且没有在展示财宝
       if (!this.isFishing && !this.castedButBobberStillInAir && !this.pullingOutOfWater && !this.isNibbling && !this.hit && !this.showingTreasure)
       {
         if (!Game1.eventUp && who.IsLocalPlayer && !this.hasEnchantmentOfType<EfficientToolEnchantment>())
         {
+          //检测耐力
           float stamina = who.Stamina;
+          //钓鱼等级越高，耐力消耗越低，如果想要为负数，钓鱼等级需要达到80
           who.Stamina -= (float) (8.0 - (double) who.FishingLevel * 0.100000001490116);
           who.checkForExhaustion(stamina);
         }
+        //当前场地是可以钓鱼的
         if (location.canFishHere() && location.isTileFishable(x1, y1))
         {
+          //浮标距离玩家的距离
           this.clearWaterDistance = FishingRod.distanceToLand((int) ((double) this.bobber.X / 64.0), (int) ((double) this.bobber.Y / 64.0), this.lastUser.currentLocation);
           this.isFishing = true;
+          //看上去是创建了一个浮标动画？
           location.temporarySprites.Add(new TemporaryAnimatedSprite(28, 100f, 2, 1, new Vector2(this.bobber.X - 32f, this.bobber.Y - 32f), false, false));
+          //播放一个动画
           if (who.IsLocalPlayer)
             location.playSound("dropItemInWater");
+          //鱼上钩等待的毫秒数
           this.timeUntilFishingBite = this.calculateTimeUntilFishingBite(bobberTile, true, who);
           ++Game1.stats.TimesFished;
           double num1 = ((double) this.bobber.X - 32.0) / 64.0;
           double num2 = ((double) this.bobber.Y - 32.0) / 64.0;
-          if ((NetFieldBase<Point, NetPoint>) location.fishSplashPoint != (NetPoint) null && new Rectangle((int) this.bobber.X - 32, (int) this.bobber.Y - 32, 64, 64).Intersects(new Rectangle(location.fishSplashPoint.X * 64, location.fishSplashPoint.Y * 64, 64, 64)))
+          //浮漂是否放在了气泡范围
+          if ((NetFieldBase<Point, NetPoint>) location.fishSplashPoint != (NetPoint) null &&
+              new Rectangle((int) this.bobber.X - 32, (int) this.bobber.Y - 32, 64, 64).Intersects(new Rectangle(location.fishSplashPoint.X * 64, location.fishSplashPoint.Y * 64, 64, 64)))
           {
+            //钓鱼等待时间缩短4倍
             this.timeUntilFishingBite /= 4f;
             location.temporarySprites.Add(new TemporaryAnimatedSprite(10, (Vector2) (NetPausableField<Vector2, NetVector2, NetVector2>) this.bobber - new Vector2(32f, 32f), Color.Cyan));
           }
@@ -381,13 +393,16 @@ namespace StardewValley.Tools
             who.FarmerSprite.animateBackwardsOnce(302, 35f);
             break;
         }
+        //鱼咬钩了，先roll个鱼
         if (this.isNibbling)
         {
           double num = this.attachments[0] != null ? (double) this.attachments[0].Price / 10.0 : 0.0;
           bool flag1 = false;
           if ((NetFieldBase<Point, NetPoint>) location.fishSplashPoint != (NetPoint) null)
             flag1 = new Rectangle(location.fishSplashPoint.X * 64, location.fishSplashPoint.Y * 64, 64, 64).Intersects(new Rectangle((int) this.bobber.X - 80, (int) this.bobber.Y - 80, 64, 64));
+          //获取鱼
           StardewValley.Object @object = location.getFish(this.fishingNibbleAccumulator, this.attachments[0] != null ? this.attachments[0].ParentSheetIndex : -1, this.clearWaterDistance + (flag1 ? 1 : 0), this.lastUser, num + (flag1 ? 0.4 : 0.0), bobberTile);
+          //没有得到鱼，默认给个垃圾
           if (@object == null || @object.ParentSheetIndex <= 0)
             @object = new StardewValley.Object(Game1.random.Next(167, 173), 1);
           if ((double) @object.scale.X == 1.0)
@@ -406,6 +421,7 @@ namespace StardewValley.Tools
           else
             flag2 = true;
           this.lastCatchWasJunk = false;
+          //钓到了垃圾，则直接从水里提出来就行
           if (((@object.Category == -20 || @object.ParentSheetIndex == 152 || @object.ParentSheetIndex == 153 || (int) (NetFieldBase<int, NetInt>) @object.parentSheetIndex == 157 || (int) (NetFieldBase<int, NetInt>) @object.parentSheetIndex == 797 || (int) (NetFieldBase<int, NetInt>) @object.parentSheetIndex == 79 || (int) (NetFieldBase<int, NetInt>) @object.parentSheetIndex == 73 || @object.ParentSheetIndex == 842 || @object.ParentSheetIndex >= 820 && @object.ParentSheetIndex <= 828 || (int) (NetFieldBase<int, NetInt>) @object.parentSheetIndex == GameLocation.CAROLINES_NECKLACE_ITEM ? 1 : (@object.ParentSheetIndex == 890 ? 1 : 0)) | (fromFishPond ? 1 : 0) | (flag2 ? 1 : 0)) != 0)
           {
             this.lastCatchWasJunk = true;
@@ -414,11 +430,13 @@ namespace StardewValley.Tools
               itemCategory = "Furniture";
             this.pullFishFromWater(@object.ParentSheetIndex, -1, 0, 0, false, false, fromFishPond, itemCategory: itemCategory);
           }
+          //钓到了鱼
           else
           {
             if (this.hit || !who.IsLocalPlayer)
               return;
             this.hit = true;
+            //开始钓鱼游戏了
             Game1.screenOverlayTempSprites.Add(new TemporaryAnimatedSprite("LooseSprites\\Cursors", new Rectangle(612, 1913, 74, 30), 1500f, 1, 0, Game1.GlobalToLocal(Game1.viewport, (Vector2) (NetPausableField<Vector2, NetVector2, NetVector2>) this.bobber + new Vector2(-140f, -160f)), false, false, 1f, 0.005f, Color.White, 4f, 0.075f, 0.0f, 0.0f, true)
             {
               scaleChangeChange = -0.005f,
@@ -445,6 +463,8 @@ namespace StardewValley.Tools
             location.playSound("pullItemFromWater");
           this.isFishing = false;
           this.pullingOutOfWater = true;
+          //是不是手钩阶段？
+          //根据玩家的朝向和位置，计算出钓鱼动画的运动参数，并创建相应的动画对象来表示钓鱼过程
           if (this.lastUser.FacingDirection == 1 || this.lastUser.FacingDirection == 3)
           {
             double num3 = (double) Math.Abs(this.bobber.X - (float) this.lastUser.getStandingX());
@@ -481,20 +501,42 @@ namespace StardewValley.Tools
       }
     }
 
+    /// <summary>
+    /// 计算鱼咬钩的时间
+    /// </summary>
+    /// <param name="bobberTile">浮标所在的tile位置</param>
+    /// <param name="isFirstCast">是否是第一次钓鱼</param>
+    /// <param name="who">哪个老哥在钓鱼</param>
+    /// <returns></returns> 钓鱼上钩需要等待的毫秒数 <summary>
     private float calculateTimeUntilFishingBite(Vector2 bobberTile, bool isFirstCast, Farmer who)
     {
+      //当前位置是否允许钓鱼，并且是否为可建造的游戏区域
       if (Game1.currentLocation.isTileBuildingFishable((int) bobberTile.X, (int) bobberTile.Y) && Game1.currentLocation is BuildableGameLocation)
       {
         Building buildingAt = (Game1.currentLocation as BuildableGameLocation).getBuildingAt(bobberTile);
+        //检查钓鱼漂所在位置的建筑物（是一个鱼塘（FishPond）并且鱼塘中有鱼，函数将返回一个固定的鱼咬钩时间
         if (buildingAt != null && buildingAt is FishPond && (int) (NetFieldBase<int, NetInt>) (buildingAt as FishPond).currentOccupants > 0)
           return FishPond.FISHING_MILLISECONDS;
       }
-      float val2 = (float) Game1.random.Next(FishingRod.minFishingBiteTime, FishingRod.maxFishingBiteTime - 250 * who.FishingLevel - (this.attachments[1] == null || this.attachments[1].ParentSheetIndex != 686 ? (this.attachments[1] == null || this.attachments[1].ParentSheetIndex != 687 ? 0 : 10000) : 5000));
+      //计算一个基于玩家的钓鱼等级和钓竿附件的随机时间值（val2）
+      //这个时间值介于最小咬钩时间（FishingRod.minFishingBiteTime）和最大咬钩时间（FishingRod.maxFishingBiteTime）之间，
+      //同时会根据玩家的钓鱼等级和钓竿附件进行调整。
+      //686 Spinner 旋式鱼饵 5000
+      //687 Dressed Spinner 精装旋式鱼饵 1w
+      //钓鱼技能是10级别，假如10级，并且有687，那么最大范围3w-1w-2500=17500
+      float val2 = (float) Game1.random.Next(FishingRod.minFishingBiteTime,
+       FishingRod.maxFishingBiteTime - 250 * who.FishingLevel - 
+        (this.attachments[1] == null ||
+         this.attachments[1].ParentSheetIndex != 686 ? (this.attachments[1] == null || this.attachments[1].ParentSheetIndex != 687 ? 0 : 10000) : 5000));
+      //第一次投掷钓竿（isFirstCast为true），则时间值（val2）会乘以0.75。
+      //此外，如果钓竿有附件，则时间值再乘以0.5。
+      //如果附件的parentSheetIndex为774，时间值再乘以0.75。
       if (isFirstCast)
         val2 *= 0.75f;
       if (this.attachments[0] != null)
       {
         val2 *= 0.5f;
+        //774 Wild Bait 万能鱼饵
         if ((int) (NetFieldBase<int, NetInt>) this.attachments[0].parentSheetIndex == 774)
           val2 *= 0.75f;
       }
@@ -541,11 +583,16 @@ namespace StardewValley.Tools
       return num - 1;
     }
 
+    /// <summary>
+    /// 开始钓鱼小游戏的部分？
+    /// </summary>
+    /// <param name="extra"></param>
     public void startMinigameEndFunction(int extra)
     {
       this.beginReelingEvent.Fire();
       this.isReeling = true;
       this.hit = false;
+      //根据玩家的朝向（FacingDirection），设置玩家角色的动画帧。如果朝向为1（右），则设置为48帧；如果朝向为3（左），则设置为48帧并翻转。
       switch (this.lastUser.FacingDirection)
       {
         case 1:
@@ -562,6 +609,7 @@ namespace StardewValley.Tools
         num3 *= 1.2f;
       float fishSize = Math.Max(0.0f, Math.Min(1f, num3 * (float) (1.0 + (double) Game1.random.Next(-10, 11) / 100.0)));
       bool treasure = !Game1.isFestival() && this.lastUser.fishCaught != null && this.lastUser.fishCaught.Count() > 1 && Game1.random.NextDouble() < FishingRod.baseChanceForTreasure + (double) this.lastUser.LuckLevel * 0.005 + (this.getBaitAttachmentIndex() == 703 ? FishingRod.baseChanceForTreasure : 0.0) + (this.getBobberAttachmentIndex() == 693 ? FishingRod.baseChanceForTreasure / 3.0 : 0.0) + this.lastUser.DailyLuck / 2.0 + (this.lastUser.professions.Contains(9) ? FishingRod.baseChanceForTreasure : 0.0);
+      //创建一个 BobberBar 对象作为钓鱼小游戏的界面，并将其设置为当前激活的可点击菜单
       Game1.activeClickableMenu = (IClickableMenu) new BobberBar(extra, fishSize, treasure, this.attachments[1] != null ? this.attachments[1].ParentSheetIndex : -1);
     }
 

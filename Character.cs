@@ -192,9 +192,9 @@ namespace StardewValley
       set => this.speed = value;
     }
 
-    public virtual int FacingDirection
+    public virtual int 
     {
-      get => (int) this.facingDirection;
+      get => (int) this.;
       set => this.facingDirection.Set(value);
     }
 

@@ -61,7 +61,9 @@ namespace StardewValley.Minigames
 
     public bool tick(GameTime time)
     {
+      //更新震动效果
       Rumble.update((float) time.ElapsedGameTime.Milliseconds);
+      //设置玩家耐力
       Game1.player.Stamina = (float) Game1.player.MaxStamina;
       for (int index = Game1.screenOverlayTempSprites.Count - 1; index >= 0; --index)
       {
@@ -121,6 +123,7 @@ namespace StardewValley.Minigames
       }
       else if (!this.gameDone)
       {
+        //一个钓鱼时间最多是1000毫秒？也就是10秒
         this.gameEndTimer -= time.ElapsedGameTime.Milliseconds;
         if (this.gameEndTimer <= 0 && Game1.activeClickableMenu == null && (!Game1.player.UsingTool || (Game1.player.CurrentTool as FishingRod).isFishing))
         {
@@ -132,6 +135,7 @@ namespace StardewValley.Minigames
           this.gameDone = true;
         }
       }
+      //游戏结束，并且还没有达到钓鱼时间
       else if (this.gameDone && this.gameEndTimer > 0)
       {
         this.gameEndTimer -= time.ElapsedGameTime.Milliseconds;
@@ -185,6 +189,7 @@ namespace StardewValley.Minigames
     {
       if (!this.gameDone)
       {
+        //玩家仅仅输入了一个方向键
         if (Game1.player.movementDirections.Count < 2 && !Game1.player.UsingTool && this.timerToStart <= 0)
         {
           if (Game1.options.doesInputListContain(Game1.options.moveUpButton, k))
